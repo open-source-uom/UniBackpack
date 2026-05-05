@@ -75,16 +75,16 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
 			QString selectedDept = department_model->data(index, Qt::DisplayRole).toString();			
 
 			qDebug() << "Installing for department: " << selectedDept;
-			Downloader downloader(current_university, selectedDept);
-			QString package_manager = downloader.check_package_manager();
+			Downloader *downloader = new Downloader(current_university, selectedDept, this);
+			QString package_manager = downloader->check_package_manager();
 
 			if(package_manager != "Unsupported") {
-				QStringList packages_to_download = downloader.read_package_list(true, package_manager);
+				QStringList packages_to_download = downloader->read_package_list(true, package_manager);
 
 				if (package_manager == "pacman") {
-					downloader.download_via_pacman(packages_to_download);
+					downloader->download_via_pacman(packages_to_download);
 				} else if (package_manager == "apt") {
-					downloader.download_via_apt(packages_to_download);
+					downloader->download_via_apt(packages_to_download);
 				}
 			} else {
 				qDebug() << "No supported package manager found. Cannot proceed with installation.";
