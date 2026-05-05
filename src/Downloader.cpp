@@ -162,17 +162,43 @@ QStringList Downloader::read_package_list(bool standard_package_manager, QString
 		return installable_with_non_standard_package_manager; 
 	}
 
-
+	return installable_with_standard_package_manager;
 }
 
 void Downloader::download_via_pacman(const QStringList &list_to_be_downloaded) {
-	if (list_to_be_downloaded.isEmpty()) {
-		qDebug() << "Dummy download";
+	if (list_to_be_downloaded.isEmpty()){
+		qDebug() << "Download list is empty\nNothing to do."; 
+		return; 
+	}
+
+	qDebug() << "Starting to download package list via pacman"; 
+
+	QProcess download_process;
+	QStringList command_structure;
+
+	command_structure << "pacman" << "-S" << "--noconfirm" << "--needed"; 
+	command_structure.append(list_to_be_downloaded);
+
+	qDebug() << "Executing: pkexec" << command_structure.join(" ");
+
+	download_process.start("pkexec", command_structure);
+	download_process.waitForFinished(-1);
+
+	qDebug() << download_process.readAllStandardOutput();
+
+	if (download_process.exitCode() == 0) {
+		qDebug() << "Package list downloaded via pacman" ;
+	} else {
+		qDebug() << "Error downloading packages via pacman. Exit code:" << download_process.exitCode();
+		qDebug() << "Error output:" << download_process.readAllStandardError();
 	}
 }
 
 void Downloader::download_via_apt(const QStringList &list_to_be_downloaded) {
 	if (list_to_be_downloaded.isEmpty()) {
-		qDebug() << "Dummy download";
+		qDebug() << "Download list is empty\nNothing to do."; 
+		return; 
 	}
+
+	qDebug() << "Starting to download package list via apt";
 }
