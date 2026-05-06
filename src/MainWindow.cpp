@@ -11,6 +11,7 @@
 #include <QIcon>
 #include <QTextEdit>
 #include <QCoreApplication>
+#include <QRegularExpression>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -33,7 +34,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->listView->setModel(university_model);
     showing_universities = true;
-
 
     ui->progressBar->setVisible(false);
     ui->statusLabel->setVisible(false);
@@ -75,7 +75,7 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
         }
         
         ui->listView->setModel(department_model);
-        showing_universities = false; 
+        showing_universities = false;
 
     } else {
         QString selectedDept = department_model->data(index, Qt::DisplayRole).toString();
@@ -94,27 +94,39 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
 
             ui->listView->setEnabled(false);
             ui->outputView->clear();
-            ui->progressBar->setMaximum(0); 
+            ui->progressBar->setMaximum(0);
             ui->progressBar->setValue(0);
+            ui->progressBar->setFormat("%p%");
+            ui->progressBar->setStyleSheet("");
             ui->progressBar->setVisible(true);
             ui->statusLabel->setText("Installing...");
             ui->statusLabel->setVisible(true);
             ui->showMoreButton->setVisible(true);
 
-            QCoreApplication::processEvents();
-            
-            connect(downloader, &Downloader::status_message, ui->outputView, &QTextEdit::append);
+            connect(downloader, &Downloader::status_message, this, [=](const QString &msg) {
+                ui->outputView->append(msg);
+
+                static QRegularExpression progress_re(R"((\d+)%)");
+                QRegularExpressionMatch match = progress_re.match(msg);
+                if (match.hasMatch()) {
+                    int percent = match.captured(1).toInt();
+                    ui->progressBar->setMaximum(100);
+                    ui->progressBar->setValue(percent);
+                }
+            });
 
             connect(downloader, &Downloader::download_completed, this, [=](bool success) {
-                ui->listView->setEnabled(true); // Unlock UI
+                ui->listView->setEnabled(true);
                 ui->progressBar->setMaximum(100);
                 ui->progressBar->setValue(100);
-                
+
                 if (success) {
                     ui->statusLabel->setText("✓ Finished!");
+                    ui->progressBar->setFormat("Done!");
                     ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #4CAF50; }");
                 } else {
                     ui->statusLabel->setText("✗ Installation failed.");
+                    ui->progressBar->setFormat("Failed");
                     ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #f44336; }");
                 }
                 downloader->deleteLater();
