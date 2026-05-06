@@ -11,7 +11,6 @@
 #include <QIcon>
 #include <QTextEdit>
 #include <QCoreApplication>
-#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow) {
@@ -103,27 +102,25 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
             ui->statusLabel->setVisible(true);
             ui->showMoreButton->setVisible(true);
 
-            QTimer *progress_timer = new QTimer(this);
-            int *current_progress = new int(0);
-
-            progress_timer->setInterval(500);
-            connect(progress_timer, &QTimer::timeout, this, [=]() {
-                if (*current_progress < 90) {
-                    (*current_progress)++;
-                    ui->progressBar->setValue(*current_progress);
-                }
-            });
-            progress_timer->start();
-
             connect(downloader, &Downloader::status_message, this, [=](const QString &msg) {
                 ui->outputView->append(msg);
+
+                for (const QString &line : msg.split('\n')) {
+                    if (line.startsWith("dlstatus:") || line.startsWith("pmstatus:")) {
+                        QStringList parts = line.split(':');
+                        if (parts.size() >= 3) {
+                            bool ok;
+                            double percent = parts[2].toDouble(&ok);
+                            if (ok) {
+                                ui->progressBar->setMaximum(100);
+                                ui->progressBar->setValue(static_cast<int>(percent));
+                            }
+                        }
+                    }
+                }
             });
 
             connect(downloader, &Downloader::download_completed, this, [=](bool success) {
-                progress_timer->stop();
-                delete current_progress;
-                progress_timer->deleteLater();
-
                 ui->listView->setEnabled(true);
                 ui->progressBar->setMaximum(100);
                 ui->progressBar->setValue(100);

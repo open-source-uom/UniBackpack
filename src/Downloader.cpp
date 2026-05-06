@@ -202,7 +202,9 @@ void Downloader::download_via_apt(const QStringList &list_to_be_downloaded) {
     });
 
     QStringList command_structure;
-    command_structure << "apt" << "install" << "-y" << list_to_be_downloaded;
+    command_structure << "apt" << "install" << "-y"
+                      << "-o" << "APT::Status-Fd=1"
+                      << list_to_be_downloaded;
     qDebug() << "Executing: pkexec" << command_structure.join(" ");
     download_process->start("pkexec", command_structure);
 }
