@@ -21,7 +21,7 @@ class MainWindow : public QMainWindow
 	
 	private slots: 
 		void on_university_selection(const QModelIndex &index);
-    	void toggle_output()
+    	void toggle_output();
 
 	private:
     		Ui::MainWindow *ui;
