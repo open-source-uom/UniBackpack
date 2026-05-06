@@ -1,133 +1,208 @@
-// Author: Apostolos Chalis 2026 <achalis@csd.auth.gr>
-// Co-Author: Ioannis Michadasis
+// Authors: Apostolos Chalis 2026 <achalis@csd.auth.gr>, Ioannis Michadasis 2026 <cs05415@uowm.gr>
 #include "Downloader.hpp"
 
 #include <QDebug>
-#include <QStandardItemModel>
-#include <QStandardItem>
-#include <QIcon>
-#include <QTextEdit>
-#include <QCoreApplication>
-#include <QScrollBar>
+#include <QFile>
+#include <QProcess>
+#include <QTextStream>
+#include <QStandardPaths>
+#include <QProcessEnvironment>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow) {
-    
-    ui->setupUi(this);
-
-    university_model = new QStandardItemModel(this);
-    department_model = new QStandardItemModel(this);
-
-    QList<QPair<QString, QString>> universities = {
-        {"Aristotle University of Thessaloniki", ":/icons/auth_logo.png"},
-        {"University of Western Macedonia",      ":/icons/uowm_logo.png"},
-        {"University of Macedonia",              ":/icons/uom_logo.png"}
-    };
-
-    for (const auto &[name, iconPath] : universities) {
-        QStandardItem *item = new QStandardItem(QIcon(iconPath), name);
-        university_model->appendRow(item);
-    }
-
-    ui->listView->setModel(university_model);
-    showing_universities = true;
-
-    ui->progressBar->setVisible(false);
-    ui->statusLabel->setVisible(false);
-    ui->outputView->setVisible(false);
-    ui->showMoreButton->setVisible(false);
-
-    connect(ui->listView, &QListView::clicked, this, &MainWindow::on_university_selection);
-    connect(ui->showMoreButton, &QPushButton::clicked, this, &MainWindow::toggle_output);
-}
-
-MainWindow::~MainWindow() {
-    delete ui;
-}
-
-void MainWindow::toggle_output() {
-    output_visible = !output_visible;
-    ui->outputView->setVisible(output_visible);
-    ui->showMoreButton->setText(output_visible ? "Hide details ▲" : "Show details ▼");
-}
-
-void MainWindow::on_university_selection(const QModelIndex &index) {
-    if (showing_universities) {
-        current_university = university_model->data(index, Qt::DisplayRole).toString();
-        
-        QStringList departments;
-        departments << "Back to Universities";
-
-        if (current_university == "Aristotle University of Thessaloniki") {
-            departments << "Informatics" << "Physics";
-        } else if (current_university == "University of Western Macedonia") {
-            departments << "Informatics" << "Mechanical Engineering";
-        } else if (current_university == "University of Macedonia") {
-            departments << "Applied Informatics" << "Economics";
-        }
-
-        department_model->clear();
-        for (const QString &dept : departments) {
-            department_model->appendRow(new QStandardItem(dept));
-        }
-        
-        ui->listView->setModel(department_model);
-        showing_universities = false; 
-
+QString Downloader::check_package_manager() {
+    if (!QStandardPaths::findExecutable("pacman").isEmpty()) {
+        qDebug() << "Pacman found.";
+        return "pacman";
+    } else if (!QStandardPaths::findExecutable("apt").isEmpty()) {
+        qDebug() << "Apt found.";
+        return "apt";
     } else {
-        QString selectedDept = department_model->data(index, Qt::DisplayRole).toString();
-        
-        if (selectedDept == "Back to Universities") {
-            ui->listView->setModel(university_model);
-            showing_universities = true;
-            return;
-        }
-
-        Downloader *downloader = new Downloader(current_university, selectedDept, this);
-        QString package_manager = downloader->check_package_manager();
-
-        if (package_manager != "Unsupported") {
-            QStringList packages_to_download = downloader->read_package_list(true, package_manager);
-
-            ui->outputView->clear();
-            ui->progressBar->setMaximum(0);
-            ui->progressBar->setVisible(true);
-            ui->progressBar->setStyleSheet("");
-            
-            ui->statusLabel->setText("Installing...");
-            ui->statusLabel->setVisible(true);
-            ui->showMoreButton->setVisible(true);
-
-            QCoreApplication::processEvents();
-
-            connect(downloader, &Downloader::status_message, this, [=](const QString &msg) {
-                ui->outputView->append(msg);
-                ui->outputView->verticalScrollBar()->setValue(ui->outputView->verticalScrollBar()->maximum());
-            });
-
-            connect(downloader, &Downloader::download_completed, this, [=](bool success) {
-                ui->progressBar->setMaximum(100);
-                ui->progressBar->setValue(100);
-                
-                if (success) {
-                    ui->statusLabel->setText("✓ Finished!"); 
-                    ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #4CAF50; }");
-                } else {
-                    ui->statusLabel->setText("✗ Installation failed.");
-                    ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #f44336; }");
-                }
-                
-                downloader->deleteLater();
-            }, Qt::UniqueConnection);
-
-            if (package_manager == "pacman") {
-                downloader->download_via_pacman(packages_to_download);
-            } else if (package_manager == "apt") {
-                downloader->download_via_apt(packages_to_download);
-            }
-        } else {
-            ui->statusLabel->setText("Error: Package manager not found.");
-            ui->statusLabel->setVisible(true);
-        }
+        qDebug() << "No supported package manager found.";
+        return "Unsupported";
     }
+}
+
+bool Downloader::is_in_pacman_repo(const QString &package_name) {
+    QProcess process;
+    process.start("pacman", QStringList() << "-Si" << package_name);
+    process.waitForFinished();
+    if (process.exitCode() == 0) {
+        qDebug() << "Package" << package_name << "is available in pacman repositories.";
+        return true;
+    } else {
+        qDebug() << "Package" << package_name << "is NOT available in pacman repositories.";
+        return false;
+    }
+}
+
+bool Downloader::is_in_apt_repo(const QString &package_name) {
+    QProcess process;
+    process.start("apt-cache", QStringList() << "show" << package_name);
+    process.waitForFinished();
+    if (process.exitCode() == 0) {
+        qDebug() << "Package" << package_name << "is available in apt repositories.";
+        return true;
+    } else {
+        qDebug() << "Package" << package_name << "is NOT available in apt repositories.";
+        return false;
+    }
+}
+
+QStringList Downloader::read_package_list(bool standard_package_manager, QString package_manager) {
+    QStringList installable_with_standard_package_manager;
+    QStringList installable_with_non_standard_package_manager;
+
+    if (standard_package_manager && package_manager == "pacman") {
+        QString filepath_of_list = ":/lists/" + name_of_university + "/" + name_of_department + "/pacman_list.txt";
+        qDebug() << "Reading package list from: " << filepath_of_list;
+        QFile file(filepath_of_list);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qDebug() << "Critical Error: Could not open the file!" << file.errorString();
+            return installable_with_standard_package_manager;
+        }
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString package = in.readLine().trimmed();
+            if (!package.isEmpty() && is_in_pacman_repo(package)) {
+                qDebug() << "Adding package to installable list: " << package;
+                installable_with_standard_package_manager.append(package);
+            }
+        }
+        file.close();
+        return installable_with_standard_package_manager;
+    }
+
+    if (!standard_package_manager && package_manager == "pacman") {
+        QString filepath_of_list = ":/lists/" + name_of_university + "/" + name_of_department + "/pacman_list.txt";
+        qDebug() << "Reading package list from: " << filepath_of_list;
+        QFile file(filepath_of_list);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qDebug() << "Critical Error: Could not open the file!" << file.errorString();
+            return installable_with_non_standard_package_manager;
+        }
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString package = in.readLine().trimmed();
+            if (!package.isEmpty() && !is_in_pacman_repo(package)) {
+                qDebug() << "Adding package to installable list: " << package;
+                installable_with_non_standard_package_manager.append(package);
+            }
+        }
+        file.close();
+        return installable_with_non_standard_package_manager;
+    }
+
+    if (standard_package_manager && package_manager == "apt") {
+        QString filepath_of_list = ":/lists/" + name_of_university + "/" + name_of_department + "/apt_list.txt";
+        qDebug() << "Reading package list from: " << filepath_of_list;
+        QFile file(filepath_of_list);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qDebug() << "Critical Error: Could not open the file!" << file.errorString();
+            return installable_with_standard_package_manager;
+        }
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString package = in.readLine().trimmed();
+            if (!package.isEmpty() && is_in_apt_repo(package)) {
+                qDebug() << "Adding package to installable list: " << package;
+                installable_with_standard_package_manager.append(package);
+            }
+        }
+        file.close();
+        return installable_with_standard_package_manager;
+    }
+
+    if (!standard_package_manager && package_manager == "apt") {
+        QString filepath_of_list = ":/lists/" + name_of_university + "/" + name_of_department + "/apt_list.txt";
+        qDebug() << "Reading package list from: " << filepath_of_list;
+        QFile file(filepath_of_list);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qDebug() << "Critical Error: Could not open the file!" << file.errorString();
+            return installable_with_non_standard_package_manager;
+        }
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString package = in.readLine().trimmed();
+            if (!package.isEmpty() && !is_in_apt_repo(package)) {
+                qDebug() << "Adding package to installable list: " << package;
+                installable_with_non_standard_package_manager.append(package);
+            }
+        }
+        file.close();
+        return installable_with_non_standard_package_manager;
+    }
+
+    qDebug() << "Critical Error: Unsupported package manager:" << package_manager;
+    return {};
+}
+
+void Downloader::download_via_pacman(const QStringList &list_to_be_downloaded) {
+    if (list_to_be_downloaded.isEmpty()) {
+        qDebug() << "Download list is empty\nNothing to do.";
+        emit download_completed(false);
+        return;
+    }
+
+    qDebug() << "Starting to download package list via pacman";
+
+    QProcess *download_process = new QProcess(this);
+
+    connect(download_process, &QProcess::readyReadStandardOutput, this, [=]() {
+        emit status_message(download_process->readAllStandardOutput());
+    });
+    connect(download_process, &QProcess::readyReadStandardError, this, [=]() {
+        emit status_message(download_process->readAllStandardError());
+    });
+    connect(download_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [=](int exitCode, QProcess::ExitStatus) {
+        if (exitCode == 0) {
+            qDebug() << "Package list downloaded via pacman";
+        } else {
+            qDebug() << "Error downloading packages via pacman. Exit code:" << exitCode;
+        }
+        emit download_completed(exitCode == 0);
+        download_process->deleteLater();
+    });
+
+    QStringList command_structure;
+    command_structure << "pacman" << "-S" << "--noconfirm" << "--needed" << list_to_be_downloaded;
+    qDebug() << "Executing: pkexec" << command_structure.join(" ");
+    download_process->start("pkexec", command_structure);
+}
+
+void Downloader::download_via_apt(const QStringList &list_to_be_downloaded) {
+    if (list_to_be_downloaded.isEmpty()) {
+        qDebug() << "Download list is empty\nNothing to do.";
+        emit download_completed(false);
+        return;
+    }
+
+    qDebug() << "Starting to download package list via apt";
+
+    QProcess *download_process = new QProcess(this);
+
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("DEBIAN_FRONTEND", "noninteractive");
+    download_process->setProcessEnvironment(env);
+
+    connect(download_process, &QProcess::readyReadStandardOutput, this, [=]() {
+        emit status_message(download_process->readAllStandardOutput());
+    });
+    connect(download_process, &QProcess::readyReadStandardError, this, [=]() {
+        emit status_message(download_process->readAllStandardError());
+    });
+    connect(download_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [=](int exitCode, QProcess::ExitStatus) {
+        if (exitCode == 0) {
+            qDebug() << "Package list downloaded via apt";
+        } else {
+            qDebug() << "Error downloading packages via apt. Exit code:" << exitCode;
+        }
+        emit download_completed(exitCode == 0);
+        download_process->deleteLater();
+    });
+
+    QStringList command_structure;
+    command_structure << "apt" << "install" << "-y" << list_to_be_downloaded;
+    qDebug() << "Executing: pkexec" << command_structure.join(" ");
+    download_process->start("pkexec", command_structure);
 }
