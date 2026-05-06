@@ -6,6 +6,7 @@
 #include <QString>
 #include <QDebug>
 #include <QStringList>
+#include <QMessageBox>
 
 class Downloader : public QObject {
 	Q_OBJECT

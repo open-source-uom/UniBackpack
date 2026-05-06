@@ -166,12 +166,18 @@ QStringList Downloader::read_package_list(bool standard_package_manager, QString
 }
 
 void Downloader::download_via_pacman(const QStringList &list_to_be_downloaded) {
-	// there is a problem with pacman -Syu though, so the user should be alerted about that 
-	// TODO: Implement alert box about that 
-	if (list_to_be_downloaded.isEmpty()){
-		qDebug() << "Download list is empty\nNothing to do."; 
-		return; 
-	}
+    // there is a problem with pacman -Syu though, so the user should be alerted about that
+    QMessageBox::warning(
+        nullptr,
+        "Warning",
+        "It is advised to update your system before proceeding."
+        "\nRun pacman -Syu"
+    );
+
+    if (list_to_be_downloaded.isEmpty()) {
+        qDebug() << "Download list is empty\nNothing to do.";
+        return;
+    }
 
 	qDebug() << "Starting to download package list via pacman"; 
 
