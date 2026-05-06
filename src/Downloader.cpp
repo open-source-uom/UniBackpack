@@ -203,10 +203,31 @@ void Downloader::download_via_pacman(const QStringList &list_to_be_downloaded) {
 }
 
 void Downloader::download_via_apt(const QStringList &list_to_be_downloaded) {
-	if (list_to_be_downloaded.isEmpty()) {
-		qDebug() << "Download list is empty\nNothing to do."; 
-		return; 
-	}
+    if (list_to_be_downloaded.isEmpty()) {
+        qDebug() << "Download list is empty\nNothing to do.";
+        return;
+    }
 
-	qDebug() << "Starting to download package list via apt";
+    qDebug() << "Starting to download package list via apt";
+
+    QProcess download_process;
+    QStringList command_structure;
+
+    command_structure << "apt" << "install" << "-y";
+    command_structure.append(list_to_be_downloaded);
+
+    qDebug() << "Executing: pkexec" << command_structure.join(" ");
+
+    download_process.start("pkexec", command_structure);
+    while (download_process.waitForReadyRead(-1)) { //To spit out all output from apt
+        qDebug() << download_process.readAllStandardOutput();
+    }
+	download_process.waitForFinished(-1);
+
+    if (download_process.exitCode() == 0) {
+        qDebug() << "Package list downloaded via apt" ;
+    } else {
+        qDebug() << "Error downloading packages via apt. Exit code:" << download_process.exitCode();
+        qDebug() << download_process.readAllStandardError();
+    }
 }
