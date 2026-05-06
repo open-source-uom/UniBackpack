@@ -20,12 +20,10 @@ add_executable(UniBackpack
     src/main.cpp
     src/Downloader.cpp
     src/MainWindow.cpp
-    src/ProgressWindow.cpp
 
     # Header files
     include/MainWindow.hpp
     include/Downloader.hpp
-    include/ProgressWindow.hpp
 
     #UI
     ui/MainWindow.ui

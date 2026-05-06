@@ -4,7 +4,6 @@
 #include "ui_MainWindow.h"
 #include "MainWindow.hpp"
 #include "Downloader.hpp"
-#include "ProgressWindow.hpp"
 
 #include <QDebug>
 #include <QProcess>
@@ -81,12 +80,6 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
 
 			if(package_manager != "Unsupported") {
 				QStringList packages_to_download = downloader->read_package_list(true, package_manager);
-        		ProgressWindow *progress = new ProgressWindow(current_university, selectedDept, this);
-
-        connect(downloader, &Downloader::status_message, progress, &ProgressWindow::append_output);
-        connect(downloader, &Downloader::download_completed, progress, &ProgressWindow::set_finished);
-
-        progress->show();
 
 				if (package_manager == "pacman") {
 					downloader->download_via_pacman(packages_to_download);
