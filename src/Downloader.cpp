@@ -8,6 +8,7 @@
 #include <QStandardPaths>
 #include <QProcessEnvironment>
 #include <QRegularExpression>
+#include <QMessageBox>
 
 QString Downloader::check_package_manager() {
     if (!QStandardPaths::findExecutable("pacman").isEmpty()) {
