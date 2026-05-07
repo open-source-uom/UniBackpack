@@ -156,13 +156,7 @@ void Downloader::download_via_pacman(const QStringList &list_to_be_downloaded) {
 
     QProcess *download_process = new QProcess(this);
 
-    // Initialize variables for progress tracking
-    int total = list_to_be_downloaded.size();
-    if (total == 0) total = 1; // Prevent division by zero
-    int downloaded = 0;
-
-    // Use mutable lambda so 'downloaded' can be modified internally
-    connect(download_process, &QProcess::readyReadStandardOutput, this, [=]() mutable {
+    connect(download_process, &QProcess::readyReadStandardOutput, this, [=]() {
         QString output = download_process->readAllStandardOutput();
         emit status_message(output);
 
@@ -174,8 +168,8 @@ void Downloader::download_via_pacman(const QStringList &list_to_be_downloaded) {
             download_count++;
         }
         if (download_count > 0) {
-            downloaded += download_count;
-            int percent = static_cast<int>((downloaded * 50.0) / total); // first 50% for downloads
+            *downloaded += download_count;
+            int percent = static_cast<int>((*downloaded * 50.0) / total); // first 50% for downloads
             emit progress_updated(qMin(percent, 49));
         }
     });
