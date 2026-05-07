@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QProcess>
 #include <QTextStream>
+#include <QMessageBox>
 #include <QStandardPaths>
 #include <QProcessEnvironment>
 #include <QRegularExpression>
