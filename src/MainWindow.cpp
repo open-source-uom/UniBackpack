@@ -89,13 +89,26 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
         QString package_manager = downloader->check_package_manager();
 
         if (package_manager != "Unsupported") {
+            ui->listView->setEnabled(false);
+            ui->outputView->clear();
+            ui->progressBar->setMaximum(100);
+            ui->progressBar->setValue(0);
+            ui->progressBar->setFormat("%p%");
+            ui->progressBar->setStyleSheet("");
+            ui->progressBar->setVisible(true);
+            ui->statusLabel->setText("Checking packages...");
+            ui->statusLabel->setVisible(true);
+            ui->showMoreButton->setVisible(true);
+
+            // Connect signals
             connect(downloader, &Downloader::status_message, this, [=](const QString &msg) {
                 ui->outputView->append(msg);
 
-            // Show package checking progress in status label
-            if (msg.startsWith("Adding") || msg.startsWith("Package")) {
-                ui->statusLabel->setText(msg.trimmed());
-            }
+                if (msg.startsWith("Found:") || msg.startsWith("Adding:") ||
+                    msg.startsWith("Checking") || msg.startsWith("Not found:") ||
+                    msg.startsWith("Adding (non-standard):")) {
+                    ui->statusLabel->setText(msg.trimmed());
+                }
 
                 for (const QString &line : msg.split('\n')) {
                     if (line.startsWith("dlstatus:") || line.startsWith("pmstatus:")) {
@@ -111,6 +124,7 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
                     }
                 }
             });
+
             connect(downloader, &Downloader::download_completed, this, [=](bool success) {
                 ui->listView->setEnabled(true);
                 ui->progressBar->setMaximum(100);
@@ -118,6 +132,7 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
 
                 if (success) {
                     ui->statusLabel->setText("✓ Finished!");
+                    ui->progressBar->setFormat("Done!");
                     ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #4CAF50; }");
                 } else {
                     ui->statusLabel->setText("✗ Installation failed.");
@@ -132,23 +147,10 @@ void MainWindow::on_university_selection(const QModelIndex &index) {
                 ui->progressBar->setValue(percent);
             });
 
-            ui->listView->setEnabled(false);
-            ui->outputView->clear();
-            ui->progressBar->setMaximum(100);
-            ui->progressBar->setValue(0);
-            ui->progressBar->setFormat("%p%");
-            ui->progressBar->setStyleSheet("");
-            ui->progressBar->setVisible(true);
-            //Set the initial text before reading packages
-            ui->statusLabel->setText("Checking packages...");
-            ui->statusLabel->setVisible(true);
-            ui->showMoreButton->setVisible(true);
-
+            // Read packages
             QStringList packages_to_download = downloader->read_package_list(true, package_manager);
-            
-            //Change the text to Installing before firing off pacman/apt
-            ui->statusLabel->setText("Installing...");
 
+            // Start download
             if (package_manager == "pacman") {
                 downloader->download_via_pacman(packages_to_download);
             } else if (package_manager == "apt") {
