@@ -28,7 +28,7 @@ bool Downloader::is_in_pacman_repo(const QString &package_name) {
     process.start("pacman", QStringList() << "-Si" << package_name);
     process.waitForFinished();
     if (process.exitCode() == 0) {
-        emit status_message("Found: " + package);
+        emit status_message("Found: " + package_name);
         qDebug() << "Package" << package_name << "is available in pacman repositories.";
         return true;
     } else {
@@ -42,7 +42,7 @@ bool Downloader::is_in_apt_repo(const QString &package_name) {
     process.start("apt-cache", QStringList() << "show" << package_name);
     process.waitForFinished();
     if (process.exitCode() == 0) {
-        emit status_message("Found: " + package);
+        emit status_message("Found: " + package_name);
         qDebug() << "Package" << package_name << "is available in apt repositories.";
         return true;
     } else {
