@@ -19,19 +19,24 @@ Before building UniBackpack, ensure that the following dependencies are installe
 sudo pacman -S base-devel cmake qt6-base qt6-tools polkit
 ```
 
+**For Debian / Ubuntu / Linux Mint:**
+```bash
+sudo apt install build-essential cmake qt6-base-dev qt6-tools-dev-tools policykit-1
+```
+
 ## Project Structure
 
 * `src/` - C++ source files (`.cpp`)
 * `include/` - C++ header files (`.hpp`)
 * `ui/` - Qt Designer forms (`.ui`)
 * `resources/lists/` - Configuration files containing the software lists tailored for each academic department.
+* `resources/icons/` - Icons for each academic department.
+
 
 ## Contributors
 
-**Apostolos Chalis - Author:**
+<a href="https://github.com/open-source-uom/UniBackpack/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=open-source-uom/UniBackpack" />
+</a>
 
-Email: achalis@csd.auth.gr / cs05414@uowm.gr
-
-**Ioannis Michadasis - Co-Author:**
-
-Email: cs05415@uowm.gr
+---
