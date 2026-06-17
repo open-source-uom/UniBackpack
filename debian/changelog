@@ -1,6 +1,5 @@
-unibackpack (1.0.1-1) noble; urgency=low
+unibackpack (1.1.1) noble; urgency=low
 
-  * Add Desktop file after creation, add unibackpack to pixmaps
+  * Add bilingual support (English/Greek) with live language switching
 
- -- Ioannis Michadasis <johnmichadasis@gmail.com>  Tue, 26 May 2026 15:39:00 +0300
- 
+ -- Ioannis Michadasis <johnmichadasis@gmail.com>  Sun, 14 Jun 2026 20:03:00 +0300
