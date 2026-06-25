@@ -20,7 +20,7 @@ class Downloader : public QObject {
 
 		QString check_package_manager();
 		QStringList read_package_list(bool standard_package_manager, QString package_manager); 
-		bool is_in_pacman_repo(const QString &package_name);
+		bool is_in_arch_repo(const QString &package_name);
 		bool is_in_apt_repo(const QString &package_name);
 
 		void download_via_pacman(const QStringList &list_to_be_downloaded);

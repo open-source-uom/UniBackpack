@@ -23,7 +23,7 @@ QString Downloader::check_package_manager() {
     }
 }
 
-bool Downloader::is_in_pacman_repo(const QString &package_name) {
+bool Downloader::is_in_arch_repo(const QString &package_name) {
     QProcess process;
     process.start("pacman", QStringList() << "-Si" << package_name);
     process.waitForFinished();
@@ -81,7 +81,7 @@ QStringList Downloader::read_package_list(bool standard_package_manager, QString
         QTextStream in(&file);
         while (!in.atEnd()) {
             QString package = in.readLine().trimmed();
-            if (!package.isEmpty() && is_in_pacman_repo(package)) {
+            if (!package.isEmpty() && is_in_arch_repo(package)) {
                 QString addMsg = tr("Adding: %1").arg(package);
                 emit status_message(addMsg);
                 emit status_update(addMsg);
@@ -105,7 +105,7 @@ QStringList Downloader::read_package_list(bool standard_package_manager, QString
         QTextStream in(&file);
         while (!in.atEnd()) {
             QString package = in.readLine().trimmed();
-            if (!package.isEmpty() && !is_in_pacman_repo(package)) {
+            if (!package.isEmpty() && !is_in_arch_repo(package)) {
                 QString addMsg = tr("Adding (non-standard): %1").arg(package);
                 emit status_message(addMsg);
                 emit status_update(addMsg);
