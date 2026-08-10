@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=UniBackpack
-Comment=University software installer
-Exec=unibackpack
-Icon=unibackpack
-Terminal=false
-Categories=Utility;

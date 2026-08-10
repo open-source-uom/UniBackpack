@@ -35,7 +35,7 @@ jobs:
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.chalis_ppa_key }}
-          passphrase: ${{ secrets.chalis_ppa_key }}
+          passphrase: ${{ secrets.chalis_ppa_key_passphrase }}
 
       - name: Configure Git and Debian environment
         run: |
