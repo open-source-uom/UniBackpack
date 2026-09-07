@@ -14,7 +14,6 @@ sha256sums=('SKIP')
 
 pkgver() {
   cd "$_pkgname"
-  # Generates version based on git tag or fallback to latest tag format
   git describe --long --tags 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' || echo "1.1.1"
 }
 
