@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(UniBackpack VERSION 0.1 LANGUAGES CXX)
+project(unibackpack VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ set(CMAKE_AUTOUIC ON) # Handles .ui files
 
 set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
 
-add_executable(UniBackpack
+qt_add_executable(unibackpack
         # Source files
         src/main.cpp
         src/Downloader.cpp
@@ -29,9 +29,9 @@ add_executable(UniBackpack
         resources/resources.qrc
 )
 
-target_include_directories(UniBackpack PRIVATE include)
+target_include_directories(unibackpack PRIVATE include)
 
-target_link_libraries(UniBackpack PRIVATE
+target_link_libraries(unibackpack PRIVATE
         Qt6::Core
         Qt6::Gui
         Qt6::Widgets
@@ -44,4 +44,4 @@ qt_add_translations(unibackpack
         translations/unibackpack_el.ts
 )
 
-install(TARGETS UniBackpack DESTINATION bin)
+install(TARGETS unibackpack DESTINATION bin)
