@@ -38,23 +38,10 @@ target_link_libraries(UniBackpack PRIVATE
         Qt6::Network
 )
 
-# --- Internationalization (i18n) ---
-# Compiles .ts -> .qm and embeds them under ":/i18n/" automatically.
-# Run "cmake --build build --target update_translations" to populate .ts from tr() strings.
-qt_add_translations(UniBackpack
+qt_add_translations(unibackpack
         TS_FILES
         translations/unibackpack_en.ts
         translations/unibackpack_el.ts
 )
 
 install(TARGETS UniBackpack DESTINATION bin)
-
-# CPack configuration to generate the Debian installer (.deb)
-set(CPACK_PACKAGE_NAME "unibackpack")
-set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_RELEASE "1")
-set(CPACK_PACKAGE_ARCHITECTURE "amd64")
-set(CPACK_PACKAGE_CONTACT "Apostolos Chalis")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A Qt6 downloader for software used by Greek universities")
-set(CPACK_GENERATOR "DEB")
-include(CPack)
