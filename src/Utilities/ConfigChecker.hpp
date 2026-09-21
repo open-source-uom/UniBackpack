@@ -1,4 +1,4 @@
-// Author: <your name here>
+// Author: Vagellis Sotiropoulos 2026 <vagellis.sotiropoulos@unios.com>
 #ifndef CONFIGCHECKER_HPP
 #define CONFIGCHECKER_HPP
 

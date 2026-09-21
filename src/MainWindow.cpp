@@ -3,7 +3,7 @@
 #include "ui_MainWindow.h"
 #include "MainWindow.hpp"
 #include "Downloader.hpp"
-#include "ConfigChecker.hpp"
+#include "Utilities/ConfigChecker.hpp"
 
 #include <QCoreApplication>
 #include <QSettings>
@@ -91,10 +91,10 @@ MainWindow::MainWindow(QWidget *parent)
     retranslate();
 
     QMenu *toolsMenu = menuBar()->addMenu(tr("Tools"));
-    QAction *checkConfigAction = toolsMenu->addAction(tr("Check for config.json"));
+    QAction *checkConfigAction = toolsMenu->addAction(tr("Check for AcademicConfig.json"));
     connect(checkConfigAction, &QAction::triggered, this, [=]() {
         ConfigChecker *checker = new ConfigChecker(this);
-        checker->scanAndNotify("config.json");
+        checker->scanAndNotify();
         checker->deleteLater();
     });
 }
