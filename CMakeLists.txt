@@ -17,10 +17,12 @@ qt_add_executable(unibackpack
         src/main.cpp
         src/Downloader.cpp
         src/MainWindow.cpp
+        resources/Utilities/ConfigChecker.cpp
 
         # Header files
         include/MainWindow.hpp
         include/Downloader.hpp
+        src/Utilities/ConfigChecker.hpp
 
         # UI
         ui/MainWindow.ui
@@ -29,7 +31,7 @@ qt_add_executable(unibackpack
         resources/resources.qrc
 )
 
-target_include_directories(unibackpack PRIVATE include)
+target_include_directories(unibackpack PRIVATE include resources/Utilities src/Utilities)
 
 target_link_libraries(unibackpack PRIVATE
         Qt6::Core
