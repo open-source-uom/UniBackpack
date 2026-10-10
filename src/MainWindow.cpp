@@ -3,202 +3,244 @@
 #include "ui_MainWindow.h"
 #include "MainWindow.hpp"
 #include "Downloader.hpp"
-#include "utils/applyTranslator.hpp"
-#include "utils/loadUniversities.hpp"
+#include "PackageManager.hpp"
+#include "utils/language.hpp"
+#include "utils/packageList.hpp"
 
-#include <QCoreApplication>
-#include <QSettings>
+#include <QCloseEvent>
 #include <QComboBox>
-#include <QDebug>
-#include <QStandardItemModel>
 #include <QIcon>
-#include <QTextEdit>
-#include <QFile>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
+#include <QLocale>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QStandardItemModel>
+
+namespace {
+    const QString success_chunk_style = QStringLiteral("QProgressBar::chunk { background-color: #4CAF50; }");
+    const QString failure_chunk_style = QStringLiteral("QProgressBar::chunk { background-color: #f44336; }");
+}
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow) {
+    : QMainWindow(parent), ui(std::make_unique<Ui::MainWindow>()) {
 
     ui->setupUi(this);
 
     university_model = new QStandardItemModel(this);
     department_model = new QStandardItemModel(this);
 
-    Utils::loadUniversities(":/universities.json",departments_by_university ,university_model);
+    universities = Utils::loadUniversities(":/universities.json");
+    for (const Utils::University &university : universities) {
+        QStandardItem *item = new QStandardItem(QIcon(university.icon), university.name);
+        item->setData(university.name, Qt::UserRole);
+        university_model->appendRow(item);
+    }
 
     ui->listView->setModel(university_model);
-    showing_universities = true;
 
     ui->progressBar->setVisible(false);
     ui->statusLabel->setVisible(false);
     ui->outputView->setVisible(false);
     ui->showMoreButton->setVisible(false);
 
-    connect(ui->listView, &QListView::clicked, this, &MainWindow::on_university_selection);
+    connect(ui->listView, &QListView::clicked, this, &MainWindow::handle_item_clicked);
+    connect(ui->backButton, &QPushButton::clicked, this, &MainWindow::show_universities);
     connect(ui->showMoreButton, &QPushButton::clicked, this, &MainWindow::toggle_output);
 
-    // Language selector in status bar
-    QComboBox *langCombo = new QComboBox(this);
-    langCombo->addItem("English", "en_US");
-    langCombo->addItem("Ελληνικά", "el_GR");
+    package_manager = PackageManager::detect();
 
-    QSettings settings;
-    QString currentLang = settings.value("language", "en_US").toString();
-    int idx = langCombo->findData(currentLang);
-    if (idx >= 0) {
-        langCombo->blockSignals(true);
-        langCombo->setCurrentIndex(idx);
-        langCombo->blockSignals(false);
-    }
+    if (universities.isEmpty())
+        set_status([this]() { return tr("Could not load the list of universities."); });
+    else if (!package_manager)
+        set_status([this]() { return tr("No supported package manager (pacman or apt) was found."); });
 
-    statusBar()->addPermanentWidget(langCombo);
-
-    connect(langCombo, &QComboBox::currentIndexChanged, this, [=](int index) {
-        QString lang = langCombo->itemData(index).toString();
-        QSettings s;
-        s.setValue("language", lang);
-        Utils::applyTranslator(lang);
-        QEvent ev(QEvent::LanguageChange);
-        QCoreApplication::sendEvent(this, &ev);
-    });
-
+    setup_language_selector();
     retranslate();
 }
 
 MainWindow::~MainWindow() {
-    delete ui;
+    // A running Downloader is deleted with this window's children, after ui is gone
+    if (downloader)
+        downloader->disconnect(this);
 }
 
+void MainWindow::setup_language_selector() {
+    QComboBox *language_combo = new QComboBox(this);
+    for (const Utils::Language &language : Utils::supportedLanguages())
+        language_combo->addItem(language.native_name, language.code);
 
+    // Select the language main() applied, which falls back to the system locale
+    const QLocale::Language saved = QLocale(Utils::savedLanguage()).language();
+    for (int i = 0; i < language_combo->count(); ++i) {
+        if (QLocale(language_combo->itemData(i).toString()).language() == saved)
+            language_combo->setCurrentIndex(i);
+    }
+
+    statusBar()->addPermanentWidget(language_combo);
+
+    connect(language_combo, &QComboBox::currentIndexChanged, this, [this, language_combo](int index) {
+        const QString language = language_combo->itemData(index).toString();
+        Utils::saveLanguage(language);
+        // Swapping the translator sends LanguageChange, which retranslates the .ui texts.
+        // University names come from the JSON, so refresh them even if no translator changed.
+        Utils::applyTranslator(language);
+        retranslate();
+    });
+}
 
 void MainWindow::toggle_output() {
     output_visible = !output_visible;
     ui->outputView->setVisible(output_visible);
-    ui->showMoreButton->setText(output_visible ? "Hide details ▲" : "Show details ▼");
+    retranslate();
 }
 
-void MainWindow::on_university_selection(const QModelIndex &index) {
-    if (showing_universities) {
-        current_university = university_model->data(index, Qt::UserRole).toString();
+void MainWindow::handle_item_clicked(const QModelIndex &index) {
+    const QString key = index.data(Qt::UserRole).toString();
 
-        const QStringList departments = departments_by_university.value(current_university);
+    if (showing_universities)
+        show_departments(key);
+    else
+        start_install(key);
+}
 
-        department_model->clear();
+void MainWindow::show_universities() {
+    ui->listView->setModel(university_model);
+    ui->backButton->setVisible(false);
+    showing_universities = true;
+}
 
-        QStandardItem *backItem = new QStandardItem(tr("Back to Universities"));
-        backItem->setData("__back__", Qt::UserRole);
-        department_model->appendRow(backItem);
+void MainWindow::show_departments(const QString &university_name) {
+    const Utils::University *university = find_university(university_name);
+    if (!university)
+        return;
 
-        for (const QString &dept : departments) {
-            QStandardItem *item = new QStandardItem(tr(dept.toUtf8().constData()));
-            item->setData(dept, Qt::UserRole);
-            department_model->appendRow(item);
-        }
+    current_university = university->name;
+    department_model->clear();
 
-        ui->listView->setModel(department_model);
-        showing_universities = false;
-
-    } else {
-        QString selectedDept = department_model->data(index, Qt::UserRole).toString();
-
-        if (selectedDept == "__back__") {
-            ui->listView->setModel(university_model);
-            showing_universities = true;
-            return;
-        }
-
-        Downloader *downloader = new Downloader(current_university, selectedDept, this);
-        QString package_manager = downloader->check_package_manager();
-
-        if (package_manager != "Unsupported") {
-            ui->listView->setEnabled(false);
-            ui->outputView->clear();
-            ui->progressBar->setMaximum(100);
-            ui->progressBar->setValue(0);
-            ui->progressBar->setFormat("%p%");
-            ui->progressBar->setStyleSheet("");
-            ui->progressBar->setVisible(true);
-            ui->statusLabel->setText("Checking packages...");
-            ui->statusLabel->setVisible(true);
-            ui->showMoreButton->setVisible(true);
-
-            connect(downloader, &Downloader::status_message, this, [=](const QString &msg) {
-                ui->outputView->append(msg);
-                for (const QString &line : msg.split('\n')) {
-                    if (line.startsWith("dlstatus:") || line.startsWith("pmstatus:")) {
-                        QStringList parts = line.split(':');
-                        if (parts.size() >= 3) {
-                            bool ok;
-                            double percent = parts[2].toDouble(&ok);
-                            if (ok) {
-                                ui->progressBar->setMaximum(100);
-                                ui->progressBar->setValue(static_cast<int>(percent));
-                            }
-                        }
-                    }
-                }
-            });
-
-            connect(downloader, &Downloader::status_update, this, [=](const QString &msg) {
-                ui->statusLabel->setText(msg.trimmed());
-            });
-
-            connect(downloader, &Downloader::download_completed, this, [=](bool success) {
-                ui->listView->setEnabled(true);
-                ui->progressBar->setMaximum(100);
-                ui->progressBar->setValue(100);
-                if (success) {
-                    ui->statusLabel->setText("✓ Finished!");
-                    ui->progressBar->setFormat("Done!");
-                    ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #4CAF50; }");
-                } else {
-                    ui->statusLabel->setText("✗ Installation failed.");
-                    ui->progressBar->setFormat("Failed");
-                    ui->progressBar->setStyleSheet("QProgressBar::chunk { background-color: #f44336; }");
-                }
-                downloader->deleteLater();
-            });
-
-            connect(downloader, &Downloader::progress_updated, this, [=](int percent) {
-                ui->progressBar->setMaximum(100);
-                ui->progressBar->setValue(percent);
-            });
-
-            QStringList packages_to_download = downloader->read_package_list(true, package_manager);
-
-            if (package_manager == "pacman") {
-                downloader->download_via_pacman(packages_to_download);
-            } else if (package_manager == "apt") {
-                downloader->download_via_apt(packages_to_download);
-            }
-        } else {
-            ui->statusLabel->setText("Error: Unsupported Package Manager");
-            ui->statusLabel->setVisible(true);
-        }
+    // Departments without packages for this system's package manager cannot be installed
+    for (const Utils::CatalogEntry &department : university->departments) {
+        QStandardItem *item = new QStandardItem;
+        item->setData(department.name, Qt::UserRole);
+        item->setEnabled(package_manager
+                         && Utils::hasPackagesFor(
+                                Utils::loadPackageList(Utils::packageListPath(university->name, department.name)),
+                                package_manager->name()));
+        department_model->appendRow(item);
     }
+
+    ui->listView->setModel(department_model);
+    ui->backButton->setVisible(true);
+    showing_universities = false;
+    retranslate();
+}
+
+void MainWindow::start_install(const QString &department) {
+    if (!package_manager || !confirm_install())
+        return;
+
+    install_state = InstallState::Running;
+    ui->listView->setEnabled(false);
+    ui->backButton->setEnabled(false);
+    ui->outputView->clear();
+    ui->progressBar->setMaximum(100);
+    ui->progressBar->setValue(0);
+    ui->progressBar->setStyleSheet("");
+    ui->progressBar->setVisible(true);
+    ui->showMoreButton->setVisible(true);
+    set_status([this]() { return tr("Checking packages..."); });
+    retranslate();
+
+    downloader = new Downloader(current_university, department, package_manager, this);
+
+    connect(downloader, &Downloader::log_message, ui->outputView, &QPlainTextEdit::appendPlainText);
+    connect(downloader, &Downloader::status_changed, this, [this](const QString &message) {
+        // Already translated by the Downloader; stays in the language it was sent in
+        set_status([message]() { return message; });
+    });
+    connect(downloader, &Downloader::progress_updated, ui->progressBar, &QProgressBar::setValue);
+    connect(downloader, &Downloader::finished, this, &MainWindow::finish_install);
+
+    downloader->start();
+}
+
+bool MainWindow::confirm_install() {
+    const QString warning = package_manager->pre_install_warning();
+    if (warning.isEmpty())
+        return true;
+
+    QMessageBox box(QMessageBox::Warning, tr("Warning"), warning, QMessageBox::NoButton, this);
+    QPushButton *continue_button = box.addButton(tr("Continue"), QMessageBox::AcceptRole);
+    box.addButton(tr("Cancel"), QMessageBox::RejectRole);
+    box.setDefaultButton(continue_button);
+    box.exec();
+    return box.clickedButton() == continue_button;
+}
+
+void MainWindow::finish_install(bool success, const QString &error) {
+    install_state = success ? InstallState::Succeeded : InstallState::Failed;
+    ui->listView->setEnabled(true);
+    ui->backButton->setEnabled(true);
+    ui->progressBar->setValue(100);
+    ui->progressBar->setStyleSheet(success ? success_chunk_style : failure_chunk_style);
+
+    if (success)
+        set_status([this]() { return tr("✓ Finished!"); });
+    else
+        set_status([this, error]() { return tr("✗ Installation failed: %1").arg(error); });
+    retranslate();
+
+    if (downloader)
+        downloader->deleteLater();
+}
+
+void MainWindow::set_status(std::function<QString()> text) {
+    status_text = std::move(text);
+    ui->statusLabel->setText(status_text().trimmed());
+    ui->statusLabel->setVisible(true);
+}
+
+const Utils::University *MainWindow::find_university(const QString &name) const {
+    for (const Utils::University &university : universities) {
+        if (university.name == name)
+            return &university;
+    }
+    return nullptr;
 }
 
 void MainWindow::retranslate() {
-    for (int i = 0; i < university_model->rowCount(); ++i) {
-        QStandardItem *item = university_model->item(i);
-        QString key = item->data(Qt::UserRole).toString();
-        QString translated = tr(key.toUtf8().constData());
-        item->setText(translated.isEmpty() ? key : translated);
+    const QString language = Utils::savedLanguage();
+
+    for (int row = 0; row < university_model->rowCount(); ++row) {
+        QStandardItem *item = university_model->item(row);
+        if (const Utils::University *university = find_university(item->data(Qt::UserRole).toString()))
+            item->setText(university->display_name(language));
     }
 
-    if (!showing_universities) {
-        for (int i = 0; i < department_model->rowCount(); ++i) {
-            QStandardItem *item = department_model->item(i);
-            QString key = item->data(Qt::UserRole).toString();
-            if (key == "__back__") {
-                item->setText(tr("Back to Universities"));
-            } else {
-                QString translated = tr(key.toUtf8().constData());
-                item->setText(translated.isEmpty() ? key : translated);
+    if (const Utils::University *university = find_university(current_university)) {
+        for (int row = 0; row < department_model->rowCount(); ++row) {
+            QStandardItem *item = department_model->item(row);
+            const QString key = item->data(Qt::UserRole).toString();
+            for (const Utils::CatalogEntry &department : university->departments) {
+                if (department.name == key)
+                    item->setText(department.display_name(language));
             }
+            item->setToolTip(item->isEnabled() ? QString()
+                                               : tr("No package list is available for this department yet."));
         }
+    }
+
+    if (status_text)
+        ui->statusLabel->setText(status_text().trimmed());
+
+    switch (install_state) {
+    case InstallState::Succeeded:
+        ui->progressBar->setFormat(tr("Done!"));
+        break;
+    case InstallState::Failed:
+        ui->progressBar->setFormat(tr("Failed"));
+        break;
+    default:
+        ui->progressBar->setFormat("%p%");
+        break;
     }
 
     ui->showMoreButton->setText(output_visible ? tr("Hide details ▲") : tr("Show details ▼"));
@@ -210,4 +252,15 @@ void MainWindow::changeEvent(QEvent *event) {
         retranslate();
     }
     QMainWindow::changeEvent(event);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event) {
+    // Interrupting apt or pacman can leave the package database broken
+    if (install_state == InstallState::Running) {
+        QMessageBox::information(this, tr("Installation in progress"),
+                                 tr("Please wait until the installation finishes."));
+        event->ignore();
+        return;
+    }
+    QMainWindow::closeEvent(event);
 }

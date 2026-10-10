@@ -16,6 +16,16 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
+     <widget class="QPushButton" name="backButton">
+      <property name="visible">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Back to Universities</string>
+      </property>
+     </widget>
+    </item>
+    <item>
      <widget class="QListView" name="listView"/>
     </item>
     <item>
@@ -52,7 +62,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QTextEdit" name="outputView">
+     <widget class="QPlainTextEdit" name="outputView">
       <property name="visible">
        <bool>false</bool>
       </property>
@@ -65,16 +75,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>800</width>
-     <height>29</height>
-    </rect>
-   </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>

@@ -1,28 +1,22 @@
 // Author: Apostolos Chalis 2026 <achalis@csd.auth.gr>
 #include "MainWindow.hpp"
-#include "utils/applyTranslator.hpp"
+#include "utils/language.hpp"
 
 #include <QApplication>
-#include <QTranslator>
-#include <QSettings>
-#include <QLocale>
+#include <QIcon>
 
-int main(int argc, char *argv[]){
-	qputenv("QT_QPA_PLATFORMTHEME", "");
-	QApplication uni_backpack_app(argc, argv);
-	uni_backpack_app.setOrganizationName("UniBackpack");
+int main(int argc, char *argv[]) {
+    qputenv("QT_QPA_PLATFORMTHEME", "");
+    QApplication uni_backpack_app(argc, argv);
+    uni_backpack_app.setOrganizationName("UniBackpack");
     uni_backpack_app.setApplicationName("UniBackpack");
-	uni_backpack_app.setWindowIcon(QIcon(":/icons/unibackpack.png"));
-	uni_backpack_app.setDesktopFileName("UniBackpack");
+    uni_backpack_app.setWindowIcon(QIcon(":/icons/unibackpack.png"));
+    uni_backpack_app.setDesktopFileName("unibackpack");
 
-	// Load saved language, default to system locale, fall back to English
-	QSettings settings;
-    QString lang = settings.value("language", QLocale::system().name()).toString();
-	Utils::applyTranslator(lang);
+    Utils::applyTranslator(Utils::savedLanguage());
 
+    MainWindow main_window;
+    main_window.show();
 
-	MainWindow main_window;
-	main_window.show();
-
-	return uni_backpack_app.exec();
+    return uni_backpack_app.exec();
 }
