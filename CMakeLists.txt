@@ -4,6 +4,8 @@ project(unibackpack VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(BUILD_TESTING "Build the unit tests" ON)
+
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets LinguistTools)
 
 set(CMAKE_AUTOMOC ON) # Handles Signals/Slots
@@ -77,3 +79,14 @@ install(FILES resources/unibackpack.desktop
 install(FILES resources/icons/unibackpack.png
         DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/512x512/apps)
 
+if(BUILD_TESTING)
+    enable_testing()
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+
+    qt_add_executable(tst_package_manager tests/tst_package_manager.cpp)
+    target_link_libraries(tst_package_manager PRIVATE unibackpack_core Qt6::Test)
+    # The tests also check the bundled data files, read from the source tree
+    target_compile_definitions(tst_package_manager PRIVATE
+            UNIBACKPACK_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    add_test(NAME tst_package_manager COMMAND tst_package_manager)
+endif()
