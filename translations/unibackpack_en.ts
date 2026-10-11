@@ -14,22 +14,28 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/Downloader.cpp" line="75"/>
+        <location filename="../src/Downloader.cpp" line="69"/>
+        <location filename="../src/Downloader.cpp" line="127"/>
+        <source>The installation was cancelled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/Downloader.cpp" line="82"/>
         <source>Found: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/Downloader.cpp" line="78"/>
+        <location filename="../src/Downloader.cpp" line="85"/>
         <source>Not in repos: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/Downloader.cpp" line="89"/>
+        <location filename="../src/Downloader.cpp" line="96"/>
         <source>None of the packages are available in your repositories.</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../src/Downloader.cpp" line="93"/>
+        <location filename="../src/Downloader.cpp" line="100"/>
         <source>Installing %n package(s)...</source>
         <translation>
             <numerusform>Installing %n package...</numerusform>
@@ -37,7 +43,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../src/Downloader.cpp" line="115"/>
+        <location filename="../src/Downloader.cpp" line="129"/>
         <source>The package manager stopped unexpectedly.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -57,7 +63,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/Downloader.cpp" line="158"/>
+        <location filename="../src/Downloader.cpp" line="149"/>
+        <source>Cancelling...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/Downloader.cpp" line="162"/>
+        <source>The installation had already started and can no longer be cancelled.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/Downloader.cpp" line="192"/>
         <source>Could not run %1: %2</source>
         <translation type="unfinished"></translation>
     </message>
@@ -75,13 +91,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../ui/MainWindow.ui" line="60"/>
-        <location filename="../src/MainWindow.cpp" line="246"/>
+        <location filename="../ui/MainWindow.ui" line="70"/>
+        <location filename="../src/MainWindow.cpp" line="254"/>
         <source>Show details ▼</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="246"/>
+        <location filename="../src/MainWindow.cpp" line="254"/>
         <source>Hide details ▲</source>
         <translation type="unfinished"></translation>
     </message>
@@ -91,67 +107,73 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="54"/>
+        <location filename="../src/MainWindow.cpp" line="60"/>
         <source>No supported package manager (pacman or apt) was found.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="227"/>
+        <location filename="../src/MainWindow.cpp" line="235"/>
         <source>No package list is available for this department yet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="170"/>
+        <location filename="../src/MainWindow.cpp" line="179"/>
         <source>Warning</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="149"/>
+        <location filename="../src/MainWindow.cpp" line="157"/>
         <source>Checking packages...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="186"/>
+        <location filename="../src/MainWindow.cpp" line="196"/>
         <source>✓ Finished!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="236"/>
+        <location filename="../src/MainWindow.cpp" line="244"/>
         <source>Done!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="188"/>
+        <location filename="../src/MainWindow.cpp" line="255"/>
+        <source>Once the package manager has started, stopping it could break your system.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../src/MainWindow.cpp" line="198"/>
         <source>✗ Installation failed: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="239"/>
+        <location filename="../src/MainWindow.cpp" line="247"/>
         <source>Failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="52"/>
+        <location filename="../src/MainWindow.cpp" line="58"/>
         <source>Could not load the list of universities.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="171"/>
+        <location filename="../src/MainWindow.cpp" line="180"/>
         <source>Continue</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="172"/>
+        <location filename="../ui/MainWindow.ui" line="60"/>
+        <location filename="../src/MainWindow.cpp" line="181"/>
         <source>Cancel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="260"/>
+        <location filename="../src/MainWindow.cpp" line="270"/>
         <source>Installation in progress</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/MainWindow.cpp" line="261"/>
+        <location filename="../src/MainWindow.cpp" line="271"/>
         <source>Please wait until the installation finishes.</source>
         <translation type="unfinished"></translation>
     </message>

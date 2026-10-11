@@ -10,6 +10,7 @@
 
 #include <QHash>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 
@@ -48,7 +49,22 @@ public:
      */
     void start();
 
+    /**
+     * @brief Stops the run if it is still safe to, and finishes it as cancelled.
+     *
+     * Possible while checking the packages and while pkexec waits for
+     * authorization. Once the package manager runs as root it can no longer
+     * be stopped, and stopping it could leave the package database broken,
+     * so the install then continues and cancellable_changed(false) is emitted.
+     */
+    void cancel();
+
 signals:
+    /**
+     * @brief Whether cancel() can still stop the run. It starts out true.
+     */
+    void cancellable_changed(bool cancellable);
+
     /**
      * @brief Overall progress of the install, from 0 to 99.
      */
@@ -76,6 +92,7 @@ private:
     void check_packages(const QHash<QString, QString> &software_by_package);
     void install(const QStringList &packages);
 
+    void mark_package_manager_running();
     void handle_install_output(const QByteArray &data);
     void flush_install_output();
     void connect_start_failure(QProcess *process);
@@ -87,6 +104,9 @@ private:
     QString name_of_department;
     std::shared_ptr<PackageManager> package_manager;
     QString pending_output; ///< Install output after the last complete line
+    QPointer<QProcess> current_process; ///< The query or install process, while it runs
+    bool cancel_requested = false;
+    bool package_manager_running = false; ///< The install printed output, so it runs as root
 };
 
 #endif // DOWNLOADER_HPP

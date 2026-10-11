@@ -60,7 +60,7 @@ protected:
     void changeEvent(QEvent *event) override;
 
     /**
-     * @brief Keeps the window open while an installation is running.
+     * @brief Keeps the window open once the package manager is installing.
      */
     void closeEvent(QCloseEvent *event) override;
 

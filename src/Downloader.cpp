@@ -55,6 +55,7 @@ void Downloader::check_packages(const QHash<QString, QString> &software_by_packa
     packages.sort();
 
     QProcess *query = new QProcess(this);
+    current_process = query;
 
     // parse_available() matches untranslated field names
     QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
@@ -63,6 +64,12 @@ void Downloader::check_packages(const QHash<QString, QString> &software_by_packa
 
     connect_start_failure(query);
     connect(query, &QProcess::finished, this, [this, query, packages, software_by_package]() {
+        if (cancel_requested) {
+            query->deleteLater();
+            fail(tr("The installation was cancelled."));
+            return;
+        }
+
         // The exit code is non-zero as soon as one package is missing, so only the output is used
         const QSet<QString> available =
             package_manager->parse_available(QString::fromUtf8(query->readAllStandardOutput()));
@@ -95,13 +102,16 @@ void Downloader::install(const QStringList &packages) {
     pending_output.clear();
 
     QProcess *process = new QProcess(this);
+    current_process = process;
     // Nobody can answer a prompt, so a read must hit EOF instead of waiting forever
     process->setStandardInputFile(QProcess::nullDevice());
 
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
+        mark_package_manager_running();
         handle_install_output(process->readAllStandardOutput());
     });
     connect(process, &QProcess::readyReadStandardError, this, [this, process]() {
+        mark_package_manager_running();
         const QString errors = QString::fromUtf8(process->readAllStandardError()).trimmed();
         if (!errors.isEmpty())
             emit log_message(errors);
@@ -113,7 +123,9 @@ void Downloader::install(const QStringList &packages) {
         flush_install_output();
         process->deleteLater();
 
-        if (status != QProcess::NormalExit)
+        if (status != QProcess::NormalExit && cancel_requested)
+            fail(tr("The installation was cancelled."));
+        else if (status != QProcess::NormalExit)
             fail(tr("The package manager stopped unexpectedly."));
         else if (exit_code != 0)
             fail(describe_exit(exit_code));
@@ -128,6 +140,26 @@ void Downloader::install(const QStringList &packages) {
                                   + package_manager->install_command(packages);
     qDebug() << "Executing: pkexec" << arguments.join(' ');
     process->start("pkexec", arguments);
+}
+
+void Downloader::cancel() {
+    if (!current_process || cancel_requested || package_manager_running)
+        return;
+    cancel_requested = true;
+    report(tr("Cancelling..."));
+    // Before authorization pkexec still runs as the user, so this reaches it and polkit
+    // drops the pending request. Once pkexec has become root the signal is refused,
+    // the install carries on, and mark_package_manager_running() tells the user so.
+    current_process->kill();
+}
+
+void Downloader::mark_package_manager_running() {
+    if (package_manager_running)
+        return;
+    package_manager_running = true;
+    emit cancellable_changed(false);
+    if (cancel_requested)
+        report(tr("The installation had already started and can no longer be cancelled."));
 }
 
 void Downloader::handle_install_output(const QByteArray &data) {

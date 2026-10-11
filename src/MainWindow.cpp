@@ -47,6 +47,10 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->listView, &QListView::clicked, this, &MainWindow::handle_item_clicked);
     connect(ui->backButton, &QPushButton::clicked, this, &MainWindow::show_universities);
     connect(ui->showMoreButton, &QPushButton::clicked, this, &MainWindow::toggle_output);
+    connect(ui->cancelButton, &QPushButton::clicked, this, [this]() {
+        if (downloader)
+            downloader->cancel();
+    });
 
     package_manager = PackageManager::detect();
 
@@ -148,6 +152,8 @@ void MainWindow::start_install(const QString &department) {
     ui->progressBar->setStyleSheet("");
     ui->progressBar->setVisible(true);
     ui->showMoreButton->setVisible(true);
+    ui->cancelButton->setEnabled(true);
+    ui->cancelButton->setVisible(true);
     set_status([this]() { return tr("Checking packages..."); });
     retranslate();
 
@@ -159,6 +165,7 @@ void MainWindow::start_install(const QString &department) {
         set_status([message]() { return message; });
     });
     connect(downloader, &Downloader::progress_updated, ui->progressBar, &QProgressBar::setValue);
+    connect(downloader, &Downloader::cancellable_changed, ui->cancelButton, &QPushButton::setEnabled);
     connect(downloader, &Downloader::finished, this, &MainWindow::finish_install);
 
     downloader->start();
@@ -181,6 +188,7 @@ void MainWindow::finish_install(bool success, const QString &error) {
     install_state = success ? InstallState::Succeeded : InstallState::Failed;
     ui->listView->setEnabled(true);
     ui->backButton->setEnabled(true);
+    ui->cancelButton->setVisible(false);
     ui->progressBar->setValue(100);
     ui->progressBar->setStyleSheet(success ? success_chunk_style : failure_chunk_style);
 
@@ -244,6 +252,7 @@ void MainWindow::retranslate() {
     }
 
     ui->showMoreButton->setText(output_visible ? tr("Hide details ▲") : tr("Show details ▼"));
+    ui->cancelButton->setToolTip(tr("Once the package manager has started, stopping it could break your system."));
 }
 
 void MainWindow::changeEvent(QEvent *event) {
@@ -255,8 +264,9 @@ void MainWindow::changeEvent(QEvent *event) {
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    // Interrupting apt or pacman can leave the package database broken
-    if (install_state == InstallState::Running) {
+    // Interrupting apt or pacman can leave the package database broken. Before they
+    // start, closing is a cancel: the processes are killed along with the Downloader.
+    if (install_state == InstallState::Running && !ui->cancelButton->isEnabled()) {
         QMessageBox::information(this, tr("Installation in progress"),
                                  tr("Please wait until the installation finishes."));
         event->ignore();
