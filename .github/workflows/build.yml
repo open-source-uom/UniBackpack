@@ -7,11 +7,13 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
-  build-test-analyze:
+  ubuntu-apt:
+    name: Ubuntu (apt)
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
 
     steps:
     - name: Checkout Source Code
@@ -42,3 +44,30 @@ jobs:
           --suppress=shadowVariable \
           --error-exitcode=1 \
           src/
+
+  arch-pacman:
+    name: Arch Linux (pacman)
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+
+    steps:
+    - name: Install Build Dependencies
+      run: pacman -Syu --noconfirm --needed base-devel cmake qt6-base qt6-tools
+
+    - name: Checkout Source Code
+      uses: actions/checkout@v7
+
+    - name: Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --parallel
+
+    - name: Run Tests
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Check Install Layout
+      run: |
+        DESTDIR="$PWD/pkg" cmake --install build --prefix /usr
+        test -x pkg/usr/bin/unibackpack
+        test -f pkg/usr/share/applications/unibackpack.desktop
+        test -f pkg/usr/share/icons/hicolor/512x512/apps/unibackpack.png
