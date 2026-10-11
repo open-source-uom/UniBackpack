@@ -8,7 +8,8 @@ It ships with UniOS, and runs on any Arch- or Debian-based distribution.
 
 1. The app lists the universities, then the departments of the one you pick. Departments that have no package list for your package manager yet are greyed out.
 2. When you pick a department, UniBackpack checks which of its packages exist in your repositories and reports the ones that don't.
-3. It installs the available ones through `pkexec`, so you are asked for your password once, and shows the progress and the package manager's output.
+3. It installs the available ones through `pkexec`, so you are asked for your password once, and shows the progress and the package manager's output. With `apt` it refreshes the package lists first. With `pacman` it asks you to update your system yourself beforehand, since Arch doesn't support partial upgrades.
+4. Until the package manager starts, you can cancel the run or close the window. After that, the window stays open until the install finishes, because interrupting `apt` or `pacman` can break the package database.
 
 The interface is available in English and Greek, selectable from the status bar.
 
@@ -68,7 +69,7 @@ To install it system-wide, including the desktop entry and icon:
 sudo cmake --install build
 ```
 
-Every push and pull request is built and tested on both Ubuntu (apt) and Arch Linux (pacman) by GitHub Actions, which also runs `cppcheck`. API documentation can be generated with `doxygen` from the repository root; it is written to `docs/`.
+Every push and pull request is built and tested on both Ubuntu (apt) and Arch Linux (pacman) by GitHub Actions, with compiler warnings treated as errors. To build the same way locally, add `-DUNIBACKPACK_WERROR=ON` to the first `cmake` command. The workflow also runs `cppcheck` and generates the API documentation with `doxygen`, failing on any warning; each run offers the result for download as the `docs-html` artifact. To generate it yourself, run `doxygen` from the repository root; it is written to `docs/`.
 
 ## Project Structure
 
@@ -160,6 +161,8 @@ Help is welcome on:
 * Package lists for the departments that don't have one yet. Only UoWM Informatics has one so far.
 * `apt` package names for FreeCAD and Wireshark in the UoWM Informatics list.
 * A backend for `dnf` (Fedora).
+* A small installer helper with its own polkit policy, so the password prompt names it instead of `/usr/bin/env`.
+* A `.deb` package for Debian-based distributions.
 
 ## Recent Changes
 
@@ -167,7 +170,9 @@ Help is welcome on:
 * The two per-department text lists (`pacman_list.txt`, `apt_list.txt`) were merged into one `packages.json`.
 * University and department names are translated in `universities.json` instead of the `.ts` files.
 * The repository check is now a single non-blocking call, and failures always report a reason instead of leaving the window disabled.
-* CI builds and tests on both Ubuntu and Arch Linux.
+* With `apt`, the package lists are refreshed before installing, and an install can no longer hang on a configuration file prompt.
+* A Cancel button stops a run until the package manager starts.
+* CI builds and tests on both Ubuntu and Arch Linux, with compiler warnings as errors, and checks the API documentation with Doxygen.
 
 ## Contributors
 
