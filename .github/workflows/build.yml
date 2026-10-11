@@ -32,7 +32,7 @@ jobs:
 
     - name: Build
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DUNIBACKPACK_WERROR=ON
         cmake --build build --parallel
 
     - name: Run Tests
@@ -59,7 +59,7 @@ jobs:
 
     - name: Build
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DUNIBACKPACK_WERROR=ON
         cmake --build build --parallel
 
     - name: Run Tests

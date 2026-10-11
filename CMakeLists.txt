@@ -5,6 +5,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTING "Build the unit tests" ON)
+option(UNIBACKPACK_WERROR "Treat compiler warnings as errors" OFF)
+
+# Applied to every target defined below; Qt's headers are system includes and stay quiet
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wall -Wextra -Wpedantic)
+    if(UNIBACKPACK_WERROR)
+        add_compile_options(-Werror)
+    endif()
+endif()
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets LinguistTools)
 
