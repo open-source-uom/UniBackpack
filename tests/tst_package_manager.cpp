@@ -39,6 +39,7 @@ private slots:
     void aptParsesAvailablePackages();
     void pacmanReportsProgress();
     void aptReportsProgress();
+    void aptUpdatesBeforeInstalling();
     void displayNameFallsBackToEnglish();
     void loadsPackageList();
     void bundledDataIsConsistent();
@@ -104,6 +105,19 @@ void TestPackageManager::aptReportsProgress() {
     QCOMPARE(progress(apt, "pmstatus:bash:100:Installed bash"), 99);
     QCOMPARE(progress(apt, "Reading package lists..."), -1);
     QCOMPARE(progress(apt, "pmstatus:broken"), -1);
+}
+
+void TestPackageManager::aptUpdatesBeforeInstalling() {
+    AptBackend apt;
+    const QStringList command = apt.install_command({"gcc", "$(reboot)"});
+
+    // One shell runs update, then install; package names stay separate arguments ("$@")
+    QCOMPARE(command.size(), 6);
+    QCOMPARE(command.mid(0, 2), (QStringList{"sh", "-c"}));
+    QVERIFY(command[2].startsWith("apt-get update && exec apt-get install "));
+    QVERIFY(command[2].contains("--force-confold"));
+    QVERIFY(!command[2].contains("gcc"));
+    QCOMPARE(command.mid(3), (QStringList{"sh", "gcc", "$(reboot)"}));
 }
 
 void TestPackageManager::displayNameFallsBackToEnglish() {

@@ -95,6 +95,8 @@ void Downloader::install(const QStringList &packages) {
     pending_output.clear();
 
     QProcess *process = new QProcess(this);
+    // Nobody can answer a prompt, so a read must hit EOF instead of waiting forever
+    process->setStandardInputFile(QProcess::nullDevice());
 
     connect(process, &QProcess::readyReadStandardOutput, this, [this, process]() {
         handle_install_output(process->readAllStandardOutput());

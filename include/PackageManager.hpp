@@ -119,7 +119,8 @@ private:
 /**
  * @brief Backend for Debian-based systems (apt-get).
  *
- * Progress comes from the machine-readable status lines that apt-get writes
+ * Refreshes the package lists before installing. Progress comes from the
+ * machine-readable status lines that apt-get writes
  * when run with @c APT::Status-Fd=1: downloads fill the first half of the bar
  * and dpkg the second.
  */

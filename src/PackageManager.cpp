@@ -134,8 +134,15 @@ QSet<QString> AptBackend::parse_available(const QString &query_output) const {
 }
 
 QStringList AptBackend::install_command(const QStringList &packages) const {
-    // apt-get rather than apt: apt's output is not meant for scripts and warns about it
-    return QStringList{"apt-get", "install", "-y", "-o", "APT::Status-Fd=1"} + packages;
+    // Stale package lists can 404 on download, so refresh them first (this upgrades nothing),
+    // in the same shell so the user authorizes once. Packages reach the script as "$@".
+    // apt-get rather than apt: apt's output is not meant for scripts and warns about it.
+    // Only the install gets Status-Fd, so the update does not move the progress bar.
+    // The Dpkg options keep a locally modified config file on upgrade instead of asking.
+    static const QString script =
+        "apt-get update && exec apt-get install -y -o APT::Status-Fd=1"
+        " -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold \"$@\"";
+    return QStringList{"sh", "-c", script, "sh"} + packages;
 }
 
 QStringList AptBackend::install_environment() const {
