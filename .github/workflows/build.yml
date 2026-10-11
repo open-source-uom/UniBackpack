@@ -1,4 +1,4 @@
-name: Static Analysis
+name: Build, Test and Static Analysis
 
 on:
   push:
@@ -7,11 +7,13 @@ on:
   pull_request:
     branches: [ "main" ]
 
+permissions:
+  contents: read
+
 jobs:
-  validate-and-package:
+  ubuntu-apt:
+    name: Ubuntu (apt)
     runs-on: ubuntu-24.04
-    permissions:
-      contents: write
 
     steps:
     - name: Checkout Source Code
@@ -24,16 +26,77 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           build-essential cmake \
-          qt6-base-dev qt6-tools-dev qt6-tools-dev-tools \
+          qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-l10n-tools \
           libqt6widgets6 \
-          cppcheck \
-          dpkg-dev
+          cppcheck
 
+    - name: Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DUNIBACKPACK_WERROR=ON
+        cmake --build build --parallel
+
+    - name: Run Tests
+      run: ctest --test-dir build --output-on-failure
 
     - name: Run cppcheck Static Analysis
       run: |
         cppcheck --enable=warning,style,performance,portability \
+          --library=qt \
           --suppress=shadowVariable \
           --error-exitcode=1 \
-          src/
+          -I include \
+          src/ include/ tests/
 
+  arch-pacman:
+    name: Arch Linux (pacman)
+    runs-on: ubuntu-24.04
+    container: archlinux:latest
+
+    steps:
+    - name: Install Build Dependencies
+      run: pacman -Syu --noconfirm --needed base-devel cmake qt6-base qt6-tools
+
+    - name: Checkout Source Code
+      uses: actions/checkout@v7
+
+    - name: Build
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release -DUNIBACKPACK_WERROR=ON
+        cmake --build build --parallel
+
+    - name: Run Tests
+      run: ctest --test-dir build --output-on-failure
+
+    - name: Check Install Layout
+      run: |
+        DESTDIR="$PWD/pkg" cmake --install build --prefix /usr
+        test -x pkg/usr/bin/unibackpack
+        test -f pkg/usr/share/applications/unibackpack.desktop
+        test -f pkg/usr/share/icons/hicolor/512x512/apps/unibackpack.png
+
+  docs:
+    name: Documentation (Doxygen)
+    runs-on: ubuntu-24.04
+    # Ubuntu's Doxygen is older than the Doxyfile and warns about its tags
+    container: archlinux:latest
+
+    steps:
+    - name: Install Doxygen
+      run: pacman -Syu --noconfirm --needed doxygen
+
+    - name: Checkout Source Code
+      uses: actions/checkout@v7
+
+    # Fails on any warning, except for parameters and return values without their own
+    # @param/@return: most functions are documented in one line that names them with @p
+    - name: Generate Documentation
+      run: |
+        ( cat Doxyfile
+          echo "WARN_AS_ERROR = FAIL_ON_WARNINGS"
+          echo "WARN_NO_PARAMDOC = NO" ) | doxygen -
+
+    - name: Upload Documentation
+      uses: actions/upload-artifact@v7
+      with:
+        name: docs-html
+        path: docs/html

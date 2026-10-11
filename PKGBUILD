@@ -29,17 +29,10 @@ build() {
   cmake --build build
 }
 
+check() {
+  ctest --test-dir build --output-on-failure
+}
+
 package() {
   DESTDIR="$pkgdir" cmake --install build
-
-  install -Dm644 "$srcdir/$_pkgname/resources/unibackpack.desktop" \
-    "$pkgdir/usr/share/applications/unibackpack.desktop"
-
-  if [ -f "$srcdir/$_pkgname/resources/icons/unibackpack.png" ]; then
-    install -Dm644 "$srcdir/$_pkgname/resources/icons/unibackpack.png" \
-      "$pkgdir/usr/share/pixmaps/unibackpack.png"
-  else
-    sed -i 's/^Icon=.*/Icon=system-software-install/' \
-      "$pkgdir/usr/share/applications/unibackpack.desktop"
-  fi
 }
