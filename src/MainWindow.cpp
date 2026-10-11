@@ -15,6 +15,8 @@
 #include <QPushButton>
 #include <QStandardItemModel>
 
+#include <algorithm>
+
 namespace {
     const QString success_chunk_style = QStringLiteral("QProgressBar::chunk { background-color: #4CAF50; }");
     const QString failure_chunk_style = QStringLiteral("QProgressBar::chunk { background-color: #f44336; }");
@@ -199,11 +201,9 @@ void MainWindow::set_status(std::function<QString()> text) {
 }
 
 const Utils::University *MainWindow::find_university(const QString &name) const {
-    for (const Utils::University &university : universities) {
-        if (university.name == name)
-            return &university;
-    }
-    return nullptr;
+    const auto it = std::find_if(universities.cbegin(), universities.cend(),
+                                 [&name](const Utils::University &university) { return university.name == name; });
+    return it == universities.cend() ? nullptr : &*it;
 }
 
 void MainWindow::retranslate() {
