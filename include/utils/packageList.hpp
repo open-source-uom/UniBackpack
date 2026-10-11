@@ -23,7 +23,7 @@ namespace Utils {
     /**
      * @brief Resource path of a department's package list.
      *
-     * @return @c :/lists/<university>/<department>/packages.json
+     * @return <tt>:/lists/\<university\>/\<department\>/packages.json</tt>
      */
     QString packageListPath(const QString &university, const QString &department);
 

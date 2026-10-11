@@ -22,14 +22,14 @@ namespace Utils {
     /**
      * @brief The languages offered in the language selector, English first.
      *
-     * Each one except English needs a @c translations/unibackpack_<language>.ts file.
+     * Each one except English needs a <tt>translations/unibackpack_\<language\>.ts</tt> file.
      */
     QList<Language> supportedLanguages();
 
     /**
      * @brief Switches the application's UI language to @p locale.
      *
-     * Loads @c :/i18n/unibackpack_<language>.qm for the best match of @p locale
+     * Loads <tt>:/i18n/unibackpack_\<language\>.qm</tt> for the best match of @p locale
      * and installs it, replacing the translator installed by a previous call.
      * If no matching or non-empty @c .qm file exists, no translator is installed,
      * so the original English strings are shown. Qt's own translations, used for
