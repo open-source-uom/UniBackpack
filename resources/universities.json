@@ -1,17 +1,29 @@
 [
     {
         "name": "Aristotle University of Thessaloniki",
+        "translations": { "el": "Αριστοτέλειο Πανεπιστήμιο Θεσσαλονίκης" },
         "icon": ":/icons/auth_logo.png",
-        "departments": ["Informatics", "Physics"]
+        "departments": [
+            { "name": "Informatics", "translations": { "el": "Τμήμα Πληροφορικής" } },
+            { "name": "Physics", "translations": { "el": "Τμήμα Φυσικής" } }
+        ]
     },
     {
         "name": "University of Western Macedonia",
+        "translations": { "el": "Πανεπιστήμιο Δυτικής Μακεδονίας" },
         "icon": ":/icons/uowm_logo.png",
-        "departments": ["Informatics", "Mechanical Engineering"]
+        "departments": [
+            { "name": "Informatics", "translations": { "el": "Τμήμα Πληροφορικής" } },
+            { "name": "Mechanical Engineering", "translations": { "el": "Τμήμα Μηχανολογίας" } }
+        ]
     },
     {
         "name": "University of Macedonia",
+        "translations": { "el": "Πανεπιστήμιο Μακεδονίας" },
         "icon": ":/icons/uom_logo.png",
-        "departments": ["Applied Informatics", "Economics"]
+        "departments": [
+            { "name": "Applied Informatics", "translations": { "el": "Τμήμα Εφαρμοσμένης Πληροφορικής" } },
+            { "name": "Economics", "translations": { "el": "Τμήμα Οικονομικών" } }
+        ]
     }
 ]

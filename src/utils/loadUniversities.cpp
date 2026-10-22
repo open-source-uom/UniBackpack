@@ -1,74 +1,61 @@
-/**
- * @file loadUniversities.hpp
- * @brief Loads the university/department catalogue from a JSON resource.
- */
-
 #include "utils/loadUniversities.hpp"
 
-#include <QString>
-#include <QJsonDocument>
+#include <QDebug>
 #include <QFile>
 #include <QJsonArray>
-#include <QJsonValue>
+#include <QJsonDocument>
 #include <QJsonObject>
-#include <QStandardItem>
+#include <QJsonValue>
+#include <QLocale>
 
-/// @brief Free helper functions shared across the UI.
 namespace Utils {
-    /**
-     * @brief Parses the universities JSON and fills the lookup table and list model.
-     *
-     * The file must contain a JSON array of objects of the form
-     * @code{.json}
-     * [
-     *   {
-     *     "name": "Aristotle University of Thessaloniki",
-     *     "icon": ":/icons/auth_logo.png",
-     *     "departments": ["Informatics"]
-     *   }
-     * ]
-     * @endcode
-     * Entries with an empty or missing @c name are skipped.
-     * For each university, one QStandardItem is appended to @p university_model.
-     * Its display text and Qt::UserRole data are both set to the name, and its icon comes from @c icon.
-     *
-     * @param path Path to the JSON file, usually a Qt resource such as ":/universities.json".
-     * @param departments_by_university Output map from university name to its department names.
-     *        Existing entries with the same key are overwritten.
-     * @param university_model Model to append university rows to. Must not be null.
-     *        Existing rows are not cleared.
-     *
-     * @note If the file cannot be opened or is not a valid JSON array, a warning is logged
-     *       and neither output is modified.
-     */
-    void loadUniversities(const QString &path, QHash<QString, QStringList> &departments_by_university, QStandardItemModel *university_model) {
+    namespace {
+        CatalogEntry read_entry(const QJsonObject &object) {
+            CatalogEntry entry;
+            entry.name = object["name"].toString();
+            const QJsonObject translations = object["translations"].toObject();
+            for (auto it = translations.begin(); it != translations.end(); ++it)
+                entry.translations.insert(it.key(), it.value().toString());
+            return entry;
+        }
+    }
+
+    QString CatalogEntry::display_name(const QString &locale) const {
+        const QString language = QLocale(locale).name().section('_', 0, 0);
+        return translations.value(language, name);
+    }
+
+    QList<University> loadUniversities(const QString &path) {
         QFile file(path);
         if (!file.open(QIODevice::ReadOnly)) {
             qWarning() << "Could not open" << path;
-            return;
+            return {};
         }
 
         QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+        const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
         if (error.error != QJsonParseError::NoError || !doc.isArray()) {
             qWarning() << "Invalid universities JSON:" << error.errorString();
-            return;
+            return {};
         }
 
+        QList<University> universities;
         for (const QJsonValue &value : doc.array()) {
-            QJsonObject uni = value.toObject();
-            QString key = uni["name"].toString();
-            if (key.isEmpty())
+            const QJsonObject object = value.toObject();
+
+            University university;
+            static_cast<CatalogEntry &>(university) = read_entry(object);
+            if (university.name.isEmpty())
                 continue;
+            university.icon = object["icon"].toString();
 
-            QStringList departments;
-            for (const QJsonValue &dept : uni["departments"].toArray())
-                departments << dept.toString();
-            departments_by_university.insert(key, departments);
-
-            QStandardItem *item = new QStandardItem(QIcon(uni["icon"].toString()), key);
-            item->setData(key, Qt::UserRole);
-            university_model->appendRow(item);
+            for (const QJsonValue &department : object["departments"].toArray()) {
+                CatalogEntry entry = read_entry(department.toObject());
+                if (!entry.name.isEmpty())
+                    university.departments.append(entry);
+            }
+            universities.append(university);
         }
+        return universities;
     }
 }
