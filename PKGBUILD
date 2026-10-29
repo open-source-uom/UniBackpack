@@ -2,7 +2,7 @@
 pkgname=unibackpack
 _pkgname=UniBackpack
 pkgver=1.1.0.r14.g358c0a2
-pkgrel=1
+pkgrel=2
 pkgdesc="A lightweight Qt C++ application to automate software toolchain installation for university students"
 arch=('x86_64')
 url="https://github.com/open-source-uom/UniBackpack"
